@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('./db');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const morgan = require('morgan');
 const cors = require('cors');
 const app = express();
