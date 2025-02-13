@@ -1,19 +1,17 @@
-const mysql = require('mysql');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
-const db = mysql.createConnection({
-    host: 'bolhzfiks8mfe9ten8b5-mysql.services.clever-cloud.com',
-    user: 'umthr4mwkiysdfsd',
-    password: 'MfpfE0nTBiQedP351nF1',
-    database: 'bolhzfiks8mfe9ten8b5',
-});
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://ajulrag353:OGl6UKRkfgFYjpoD@cluster0.adtkf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
-db.connect((err) => {
-    if (err) {
-        console.error('Database connection failed:', err.message);
+mongoose
+    .connect(MONGO_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    })
+    .then(() => console.log('MongoDB Connected...'))
+    .catch((err) => {
+        console.error('MongoDB connection error:', err);
         process.exit(1);
-    }
-    console.log('MySQL Connected...');
-});
+    });
 
-module.exports = db;
+module.exports = mongoose;
