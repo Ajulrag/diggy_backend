@@ -68,36 +68,64 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/extract', async (req, res) => { 
-    console.log("rew", req.body);
-    const { val } = req.body; 
-console.log("val", val);
-    if (!val || !val.dataToBeExtracted || !val.idData) {
-        return res.status(400).json({ error: "Invalid or missing data" });
+    console.log("📩 Received request body:", req.body);
+
+    let { chunk } = req.body;
+
+    if (!chunk || typeof chunk !== "object") {
+        console.error("❌ Invalid chunk received:", chunk);
+        return res.status(400).json({ error: "Invalid or missing chunk data" });
     }
 
-    // Convert idData object into a readable string
-    const idDataText = Object.entries(val.idData)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join("\n");
+    const { data, dataToBeExtracted } = chunk;
 
-    const prompt = `Extract ${val.dataToBeExtracted} from the following data:\n${idDataText}`;
+    if (!data || !dataToBeExtracted) {
+        console.error("❌ Missing fields in chunk:", chunk);
+        return res.status(400).json({ error: "Missing required fields in chunk" });
+    }
 
     try {
-        const result = await model.generateContent(prompt);
+        const result = await model.generateContent(`
+            Extract structured data in valid JSON format using these fields: ${dataToBeExtracted}.
+            Ensure the output is a JSON array of objects with key-value pairs matching the input fields.
 
-        // Ensure result structure is correct
+            Here is the raw data:
+            ${JSON.stringify(data)}
+        `);
+
         if (result?.response?.text) {
-            const extractedText = result.response.text();
-            console.log("Extracted Text:", extractedText);
-            return res.status(201).json({ extractedData: extractedText });
+            let extractedText = result.response.text()
+                .replace(/^```json|```$/g, "")
+                .trim();
+
+            console.log("📝 Raw AI Response:", extractedText);
+
+            let structuredData;
+            try {
+                structuredData = JSON.parse(extractedText);
+            } catch (e) {
+                console.error("❌ Failed to parse AI response:", extractedText, e);
+                return res.status(500).json({ error: "AI returned invalid JSON", rawData: extractedText });
+            }
+
+            if (!Array.isArray(structuredData)) {
+                console.error("❌ Extracted data is not an array:", structuredData);
+                return res.status(500).json({ error: "Invalid data format", rawData: extractedText });
+            }
+
+            console.log("✅ Structured Extracted Data:", structuredData);
+            return res.status(201).json({ extractedData: structuredData });
         } else {
             throw new Error("Invalid response structure from model");
         }
     } catch (error) {
-        console.error("Error generating content:", error);
+        console.error("❌ Error generating content:", error);
         return res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
+        
+
 
 
 
